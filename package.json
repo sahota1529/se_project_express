@@ -1,0 +1,14 @@
+{
+  "name": "se_project_express",
+  "version": "0.1.0",
+  "description": "express project",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vipanpreet Kaur",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

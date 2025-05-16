@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
 
   avatar: {
     type: String,
-    required: [true, "The avatar fields is required."],
+    required: true,
     validate: {
       validator(value) {
         return validator.isURL(value);
@@ -57,3 +57,5 @@ userSchema.statics.findUserByCredentials = function (email, password) {
 };
 
 const User = mongoose.model("User", userSchema);
+
+module.exports = { User };

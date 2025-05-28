@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
 
   avatar: {
     type: String,
-    required: true,
+    required: [true, "The avatar field is required"],
     validate: {
       validator(value) {
         return validator.isURL(value);
@@ -47,8 +47,6 @@ userSchema.statics.findUserByCredentials = function (email, password) {
 
       return bcrypt.compare(password, user.password).then((matched) => {
         if (!matched) {
-          console.log("Password does not match");
-
           return Promise.reject(new Error("Incorrect email or password"));
         }
         return user;

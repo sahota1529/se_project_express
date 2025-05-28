@@ -1,26 +1,20 @@
+const BadRequestError = require("../custom_errors/BadRequestError");
+const ForbiddenError = require("../custom_errors/ForbiddenError");
+const NotFoundError = require("../custom_errors/NotFoundError");
 const { ClothingItems } = require("../models/clothingItems");
-const {
-  BAD_REQUEST,
-  NOT_FOUND,
-  SERVER_ERROR,
-  FORBIDDEN,
-} = require("../utils/errors");
 
 // GET /items - Returns all clothing items
-const getAllClothingItems = (req, res) => {
+const getAllClothingItems = (req, res, next) => {
   ClothingItems.find({})
     .then((items) => res.send(items))
     .catch((err) => {
-      console.error(err);
-      return res.status(SERVER_ERROR).send({
-        message: "Error fetching clothing items",
-      });
+      next(err);
     });
 };
 
 // POST /items - Creates a new item
-const createClothingItem = (req, res) => {
-  console.log(req.user._id);
+const createClothingItem = (req, res, next) => {
+  console.log(req.user._id); // Access the hardcoded user ID
 
   const { name, weather, imageUrl } = req.body;
 
@@ -32,24 +26,26 @@ const createClothingItem = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        return res.status(BAD_REQUEST).send({ message: "Error creating item" });
+        next(new BadRequestError("Error creating item"));
+      } else {
+        next(err);
       }
-      return res.status(SERVER_ERROR).send({ message: "Error from item" });
     });
 };
 
 // DELETE /items/:itemId - Deletes an item by _id
-const deleteClothingItem = (req, res) => {
+const deleteClothingItem = (req, res, next) => {
   const { itemId } = req.params;
-  const userId = req.user._id;
+  const userId = req.user._id; // Logged-in user's ID
 
   ClothingItems.findById(itemId)
     .orFail()
     .then((item) => {
+      // Check if the logged-in user is the owner
       if (item.owner.toString() !== userId) {
-        return res
-          .status(FORBIDDEN)
-          .send({ message: "You are not authorized to delete this item" });
+        return next(
+          new ForbiddenError("You are not authorized to delete this item")
+        );
       }
 
       // If authorized, delete the item
@@ -60,41 +56,40 @@ const deleteClothingItem = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "CastError") {
-        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
+        return next(new BadRequestError("Invalid item ID"));
       }
-      if (err.name === "DocumentNotFoundError" || "TypeError") {
-        return res.status(NOT_FOUND).send({ message: "Item not found" });
+      if (err.name === "DocumentNotFoundError" || err instanceof TypeError) {
+        return next(new NotFoundError("Item not found"));
       }
-      return res.status(SERVER_ERROR).send({ message: "Error deleting item" });
+      return next(err);
     });
 };
 
-const likeItem = (req, res) => {
+const likeItem = (req, res, next) => {
   const userId = req.user._id;
   const { itemId } = req.params;
 
   ClothingItems.findByIdAndUpdate(
     itemId,
-    { $addToSet: { likes: userId } },
-    { new: true }
+    { $addToSet: { likes: userId } }, // Add user ID if not already in the array
+    { new: true } // Return the updated document
   )
     .then((updatedItem) => {
       if (!updatedItem) {
-        return res.status(NOT_FOUND).send({ message: "Item not found" });
+        return next(new NotFoundError("Item not found"));
       }
       return res.send(updatedItem);
     })
     .catch((err) => {
       if (err.name === "CastError") {
-        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
+        next(new BadRequestError("Invalid item ID"));
+      } else {
+        next(err);
       }
-      return res
-        .status(SERVER_ERROR)
-        .send({ message: "Error liking this item" });
     });
 };
 
-const dislikeItem = (req, res) => {
+const dislikeItem = (req, res, next) => {
   const userId = req.user._id;
   const { itemId } = req.params;
 
@@ -105,17 +100,19 @@ const dislikeItem = (req, res) => {
   )
     .then((updatedItem) => {
       if (!updatedItem) {
-        return res.status(NOT_FOUND).send({ message: "Item not found" });
+        return next(new NotFoundError("Item not found"));
       }
       return res.send(updatedItem);
     })
     .catch((err) => {
+      console.error(err);
       if (err.name === "CastError") {
-        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
+        return next(new BadRequestError("Invalid item ID"));
       }
-      return res
-        .status(SERVER_ERROR)
-        .send({ message: "Error disliking this item" });
+      if (err.name === "DocumentNotFoundError" || err instanceof TypeError) {
+        return next(new NotFoundError("Item not found"));
+      }
+      return next(err);
     });
 };
 

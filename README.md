@@ -18,3 +18,6 @@ Request authorization
 https://github.com/sahota1529/se_project_react
 
 # Domain Names
+
+Front-End : wtwr.cloudranger.net
+Back-End: api.wtwr.cloudranger.net
